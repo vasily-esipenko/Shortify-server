@@ -1,10 +1,10 @@
-import * as mongoose from 'mongoose';
+import mongoose from 'mongoose';
 import config from 'config'
 
 const MONGO: string = config.get("MONGO");
 
 // Connect to MongoDB
-mongoose.connect(MONGO, {
+const connection = mongoose.connect(MONGO, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 });
