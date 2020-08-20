@@ -1,10 +1,10 @@
 import express, {Request, Response} from 'express';
-import ShortUrl from '../models/shortUrl';
+import ShortUrl from '../models/ShortUrl';
 const urlRouter = express.Router();
 
 urlRouter.post('/', async (req: Request, res: Response) => {
-    await ShortUrl.create({full: req.body.fullUrl});
-    res.json({message: "Url was added"});
+    await ShortUrl.create({full: req.body.fullUrl, created: new Date()});
+    res.json({message: "url was added"});
 });
 
 urlRouter.get('/', async (req: Request, res: Response) => {
