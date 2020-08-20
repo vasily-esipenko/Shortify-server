@@ -1,8 +1,8 @@
-import * as mongoose from 'mongoose';
+import mongoose from 'mongoose';
 import shortid from 'shortid';
 
 
-const schema = new mongoose.Schema({
+const urlSchema = new mongoose.Schema({
     full: {
         type: String,
         required: true
@@ -19,4 +19,4 @@ const schema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('shortUrl', schema);
+export default mongoose.model('ShortUrl', urlSchema);
