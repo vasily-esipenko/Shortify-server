@@ -1,4 +1,5 @@
-import express, {Application, Request, Response, NextFunction, Router} from 'express';
+import express, {Application, Request, Response} from 'express';
+import mongoose from 'mongoose';
 import cors from 'cors';
 import config from 'config';
 import morgan from 'morgan';
@@ -6,6 +7,14 @@ import morgan from 'morgan';
 // Import routes
 import authRouter from './routes/auth';
 import urlRouter from './routes/url';
+
+const MONGO: string = config.get("MONGO");
+
+// Connect to MongoDB
+mongoose.connect(MONGO, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+});
 
 const app: Application = express();
 
