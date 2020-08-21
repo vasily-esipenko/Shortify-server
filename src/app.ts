@@ -23,7 +23,7 @@ app.use(morgan('tiny'));
 app.use(express.json());
 
 // Use routes
-app.use('api/user', authRouter);
+app.use('/api/user', authRouter);
 app.use('/api/url', urlRouter);
 
 app.get('/', async (req: Request, res: Response) => {
