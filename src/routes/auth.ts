@@ -10,6 +10,8 @@ const authRouter: Router = express.Router();
 
 // JWT functions
 const jwtSign = (user: any) => {
+    let jwtToken: string = "";
+
     const payload: object = {
         username: user.username,
         email: user.email
@@ -19,10 +21,12 @@ const jwtSign = (user: any) => {
             console.log(err)
             return err;
         }
-        if (token) return token;
+        if (token) {
+            jwtToken = token;
+        }
     });
 
-    return token;
+    return jwtToken;
 };
 
 const jwtVerify = (token: string) => {
@@ -36,14 +40,6 @@ const jwtVerify = (token: string) => {
 
 // Hash & compare password functions
 const hashPassword = (password: string) => {
-    let hashedPassword = null;
-    bcrypt.hash(password, 10, (err, encrypted) => {
-        if (err) return err;
-        
-        return hashedPassword = encrypted;
-    })
-
-    return hashedPassword;
 }
 
 const comparePassword = (password: string, encrypted: string) => {
@@ -64,15 +60,22 @@ authRouter.post('/signup', async (req: Request, res: Response) => {
         if (err) res.json({error: err});
 
         if (result == null || result == undefined) {
-            const hashed = hashPassword(req.body.password);
+
             await User.create({
                 username: req.body.username,
                 email: req.body.email,
-                password: hashed,
+                password: req.body.password,
                 created: new Date(),
-            });
+            }).then(createdUser => {
+                try {
+                    const token = jwtSign(createdUser);
 
-            res.json({message: "Signed up!", token: jwtSign(req.body)});
+                    res.json({message: "Signed up!", token: token, user: createdUser});
+                } catch {
+                    res.status(500);
+                    res.json("Something went wrong...");
+                }
+            });
         }
 
         else res.json({message: "User already exist"});
@@ -80,18 +83,16 @@ authRouter.post('/signup', async (req: Request, res: Response) => {
 });
 
 authRouter.post('/login', async (req: Request, res: Response) => {
-    await User.findOne({email: req.body.email}).exec(async (err, result: any) => {
-        if (err) res.json({error: err});
-
-        if (result != null && result != undefined) {
-            if (comparePassword(req.body.password, result.password)) {
-                res.json({message: "Logged in!", token: jwtSign(req.body)});
+    await User.findOne({email: req.body.email}).then(foundUser => {
+        try {
+            if (foundUser) {
+                const token = jwtSign(foundUser);
+                res.json({message: "Logged in!", token: token, user: foundUser});
             }
-            
-            else res.json({message: "Passwords don't match"});
+        } catch {
+            res.status(500);
+            res.json("Something went wrong...");
         }
-
-        else res.json({message: "User not found"});
     });
 });
 
