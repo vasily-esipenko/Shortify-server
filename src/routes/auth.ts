@@ -6,27 +6,11 @@ import bcrypt from 'bcrypt';
 import { token } from 'morgan';
 import { isValid } from 'shortid';
 import { strict } from 'assert';
+import { Mongoose } from 'mongoose';
 const authRouter: Router = express.Router();
 
 // JWT functions
-const jwtSign = (user: any) => {
-    let jwtToken: string = "";
-
-    const payload: object = {
-        username: user.username,
-        email: user.email
-    };
-    jwt.sign(payload, config.get("JWT"), (err, token) => {
-        if (err) {
-            console.log(err)
-            return err;
-        }
-        if (token) {
-            jwtToken = token;
-        }
-    });
-
-    return jwtToken;
+const jwtSign = (user: any, res: Response) => {
 };
 
 const jwtVerify = (token: string) => {
@@ -61,23 +45,43 @@ authRouter.post('/signup', async (req: Request, res: Response) => {
 
         if (result == null || result == undefined) {
 
-            await User.create({
-                username: req.body.username,
-                email: req.body.email,
-                password: req.body.password,
-                created: new Date(),
-            }).then(createdUser => {
-                try {
-                    const token = jwtSign(createdUser);
+            bcrypt.hash(req.body.password, 10, async (err, hashed) => {
 
-                    res.json({message: "Signed up!", token: token, user: createdUser});
-                } catch {
-                    res.status(500);
-                    res.json("Something went wrong...");
+                if (err) {
+                    res.status(422);
+                    res.json(err);
+                } else {
+                    await User.create({
+                        username: req.body.username,
+                        email: req.body.email,
+                        password: hashed,
+                        created: new Date(),
+                    }).then(createdUser => {
+                        try {
+                            const payload: object = {
+                                username: createdUser.username,
+                                email: createdUser.email,
+                                created: createdUser.created
+                            };
+                        
+                            jwt.sign(payload, config.get("JWT"), {
+                                expiresIn: '1d'
+                            }, (err, token) => {
+                                if (err) {
+                                    res.status(422);
+                                    res.json(err);
+                                } else {
+                                    res.json({message: "Signed up!", token: token, user: payload},);
+                                }
+                            });
+                        } catch {
+                            res.status(500);
+                            res.json("Something went wrong...");
+                        }
+                    });
                 }
             });
         }
-
         else res.json({message: "User already exist"});
     });
 });
@@ -86,8 +90,32 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     await User.findOne({email: req.body.email}).then(foundUser => {
         try {
             if (foundUser) {
-                const token = jwtSign(foundUser);
-                res.json({message: "Logged in!", token: token, user: foundUser});
+                bcrypt.compare(req.body.password, foundUser.password, async (err, result) => {
+                    if (result) {
+                        const payload: object = {
+                            username: foundUser.username,
+                            email: foundUser.email,
+                            created: foundUser.created
+                        };
+                    
+                        jwt.sign(payload, config.get("JWT"), {
+                            expiresIn: '1d'
+                        }, (err, token) => {
+                            if (err) {
+                                res.status(422);
+                                res.json(err);
+                            } else {
+                                res.json({message: "Logged in!", token: token, user: payload});
+                            }
+                        });
+                    } else {
+                        res.status(422);
+                        res.json({error: err, result: result});
+                    }
+                });
+            } else {
+                res.status(404);
+                res.json("User not found");
             }
         } catch {
             res.status(500);
