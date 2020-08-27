@@ -9,36 +9,13 @@ import { strict } from 'assert';
 import { Mongoose } from 'mongoose';
 const authRouter: Router = express.Router();
 
-// JWT functions
-const jwtSign = (user: any, res: Response) => {
-};
-
-const jwtVerify = (token: string) => {
-    let result: boolean = false;
-    jwt.verify(token, config.get("JWT"), (err, decoded) => {
-        if (decoded) result = true;
-    });
-
-    return result;
-};
-
-// Hash & compare password functions
-const hashPassword = (password: string) => {
-}
-
-const comparePassword = (password: string, encrypted: string) => {
-    let isValid = false;
-    bcrypt.compare(password, encrypted, (err, result) => {
-        if (result) return isValid = true;
-
-        console.log(err);
-        return isValid = false;
-    });
-
-    return isValid;
-};
-
 // Routes
+authRouter.get('/', async (req: Request, res: Response) => {
+    const users = await User.find();
+    res.json(users);
+});
+
+
 authRouter.post('/signup', async (req: Request, res: Response) => {
     await User.findOne({email: req.body.email}).exec(async (err, result) => {
         if (err) res.json({error: err});
@@ -52,14 +29,12 @@ authRouter.post('/signup', async (req: Request, res: Response) => {
                     res.json(err);
                 } else {
                     await User.create({
-                        username: req.body.username,
                         email: req.body.email,
                         password: hashed,
                         created: new Date(),
                     }).then(createdUser => {
                         try {
                             const payload: object = {
-                                username: createdUser.username,
                                 email: createdUser.email,
                                 created: createdUser.created
                             };
@@ -93,7 +68,6 @@ authRouter.post('/login', async (req: Request, res: Response) => {
                 bcrypt.compare(req.body.password, foundUser.password, async (err, result) => {
                     if (result) {
                         const payload: object = {
-                            username: foundUser.username,
                             email: foundUser.email,
                             created: foundUser.created
                         };
@@ -108,11 +82,13 @@ authRouter.post('/login', async (req: Request, res: Response) => {
                                 res.json({message: "Logged in!", token: token, user: payload});
                             }
                         });
+
                     } else {
                         res.status(422);
                         res.json({error: err, result: result});
                     }
                 });
+
             } else {
                 res.status(404);
                 res.json("User not found");
