@@ -102,6 +102,19 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 
 
 authRouter.post('/verify', async (req: Request, res: Response) => {
+    try {
+        jwt.verify(req.body.token, config.get("JWT"), async (err: any, decoded: any) => {
+            if (err) {
+                res.json({message: err, result: false});
+                console.log(err);
+            }
+    
+            if (decoded) res.json({data: decoded, result: true});
+        });
+    } catch {
+        res.status(500);
+        res.json("Something went wrong...");
+    }
 });
 
 export default authRouter;
